@@ -3,6 +3,7 @@ import json
 
 # Input data files
 nodeTable = open("nexo_original.json", "r")
+out = open("term2genes.txt", "w")
 
 # Load entire data
 nexo3 = json.load(nodeTable)
@@ -47,6 +48,7 @@ for node in nexo3Nodes:
     orfs = orfNames.split(",")
     addTerms(genes)
     addTerms(orfs)
+    out.write(termID + "\t" + geneNames + "\n")
 
 for key in symbol2sgd:
   if key in gene2term:
@@ -63,4 +65,6 @@ for key in gene2term:
     termStr = termStr + term + ","
 
   print(key + "\t" + termStr[0:len(termStr)-1])
+
+out.close()
 
