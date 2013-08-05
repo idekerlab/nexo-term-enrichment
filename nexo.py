@@ -1,6 +1,9 @@
 # Term Enrichement
 import numpy as np
 import scipy as sp
+
+import qvalue
+
 from scipy import stats
 
 from flask import Flask
@@ -87,8 +90,11 @@ class HypergeometricTest:
         # Number of tests performed: will be used for correction.
         num_tests = len(sample_map)
 
-        results = []
+        results = [ {} ] * num_tests
 
+        pvals = np.ones(num_tests)
+
+        idx = 0
         for term in sample_map:
             # Calculate p-value
             sampled = sample_map[term]
@@ -98,16 +104,37 @@ class HypergeometricTest:
 
             p = stats.hypergeom.pmf(k,total_num_genes,m,n)
             p_corrected = p * num_tests
+            pvals[idx] = p
+            
+            result = {}
+            result['id'] = term
+            result['p-value'] = p_corrected
+            result['background'] = m
+            result['genes'] = list(sampled)
+            results[idx] = result
+            idx = idx + 1
 
-            if p_corrected < cutoff and k >= gene_threshold:
-                result = {}
-                result['id'] = term
-                result['p-value'] = p_corrected
-                result['background'] = m
-                result['genes'] = list(sampled)
-                results.append(result)
+        
+        # Calculate q-values
+        qvals = qvalue.estimate(pvals)
 
-        return {'results':results, 'total_genes':total_num_genes}
+        filtered_results = []
+
+        idx = 0
+
+        for term in sample_map:
+            qv = qvals[idx]
+            res = results[idx]
+
+            pv = res['p-value']
+            k = len(res['genes'])
+            res['q-value'] = qv
+            if pv < cutoff and k >= gene_threshold:
+                filtered_results.append(res)
+       
+            idx = idx + 1
+
+        return {'results':filtered_results, 'total_genes':total_num_genes}
 
 
     def __calculateTermFrequency(self, genes_of_interest, gene2terms):
@@ -150,7 +177,6 @@ class TermEnrichment(restful.Resource):
             genes_upper.append(gene.upper())
 
         print(genes_upper)
-        print(cutoff)
         return tester.performTest(genes_upper, cutoff)
 
 api.add_resource(TermEnrichment, '/enrich')
