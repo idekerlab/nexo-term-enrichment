@@ -92,7 +92,7 @@ class HypergeometricTest:
 
         results = [ {} ] * num_tests
 
-        pvals = np.ones(num_tests)
+        pvals = np.zeros(num_tests)
 
         idx = 0
         for term in sample_map:
@@ -115,7 +115,15 @@ class HypergeometricTest:
             idx = idx + 1
 
         
-        # Calculate q-values
+        # Correct border values (library does not accept 0 & 1)
+        i = 0
+        for p in pvals:
+            if p >= 1.0:
+                pvals[i] = 0.9999999999999999999999
+            elif p <= 0:
+                pvals[i] = 0.0000000000000000000001
+            i += 1
+
         qvals = qvalue.estimate(pvals)
 
         filtered_results = []
