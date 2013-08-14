@@ -15,6 +15,16 @@ import json
 # Constants
 GENES = 'genes'
 ALPHA = 'alpha'
+ONTOLOGY_TYPE = 'type'
+
+#root terms
+ROOT_NEXO = "joining_root"
+ROOT_BP = "GO:0008150"
+ROOT_MF = "GO:0003674"
+ROOT_CC = "GO:0005575"
+
+# Valid namespace
+VALID_ONTOLOGY = ['NEXO', 'MF', 'CC', 'BP']
 
 # p-value cutoff
 p_val_threshold = 0.01
@@ -28,22 +38,41 @@ api = restful.Api(app)
 parser = reqparse.RequestParser()
 parser.add_argument(GENES, type=str)
 parser.add_argument(ALPHA, type=float)
+parser.add_argument(ONTOLOGY_TYPE, type=str)
 
 
 class TermMapping:
 
-    _gene2nexo_terms = {}
-    _nexo_term2genes = {}
-    _num_nexo_genes = 0
+    _gene2terms = {}
+    _term2genes = {}
+    _num_genes = {}
 
     def __init__(self):
-        print "Loading resource"
-        self._gene2nexo_terms = self.createMap("data/gene2terms.txt")
-        self._nexo_term2genes = self.createMap("data/term2genes.txt")
+        print "Loading resource files..."
+        
+        # NeXO resources
+        self._gene2terms['NEXO'] = self.createMap("data/gene2terms.txt")
+        self._term2genes['NEXO'] = self.createMap("data/term2genes.txt")
+       
+        # GO resources
+        self._gene2terms['GO'] = self.createMap("data/gene2terms.txt")
+        self._term2genes['GO'] = self.createMap("data/goterm2genes.txt")
+        
         # Count genes.  Root term has all genes.
-        all_genes = self._nexo_term2genes["joining_root"]
-        self._num_nexo_genes = len(all_genes)
-        print("NeXO Genes = " + str(self._num_nexo_genes))
+        all_genes = self._term2genes['NEXO'][ROOT_NEXO]
+        self._num_genes['NEXO'] = len(all_genes)
+        
+        all_genes = self._term2genes['GO'][ROOT_MF]
+        self._num_genes['MF'] = len(all_genes)
+        all_genes = self._term2genes['GO'][ROOT_CC]
+        self._num_genes['CC'] = len(all_genes)
+        all_genes = self._term2genes['GO'][ROOT_BP]
+        self._num_genes['BP'] = len(all_genes)
+
+        print("Ready.  NeXO Genes = " + str(self._num_genes['NEXO']))
+        print("MF Genes = " + str(self._num_genes['MF']))
+        print("BP Genes = " + str(self._num_genes['BP']))
+        print("CC Genes = " + str(self._num_genes['CC']))
 
     def createMap(self, file_name):
         mapping = {}
@@ -58,14 +87,14 @@ class TermMapping:
         return mapping
 
 
-    def get_gene_mapping(self):
-        return self._gene2nexo_terms
+    def get_gene_mapping(self, ontology_type):
+        return self._gene2terms[ontology_type]
 
-    def get_term_mapping(self):
-        return self._nexo_term2genes
+    def get_term_mapping(self, ontology_type):
+        return self._term2genes[ontology_type]
 
-    def get_gene_count(self):
-        return self._num_nexo_genes
+    def get_gene_count(self, ontology_type):
+        return self._num_genes[ontology_type]
 
 
 class HypergeometricTest:
@@ -75,13 +104,14 @@ class HypergeometricTest:
     def __init__(self):
         self._mapper = TermMapping()
 
-    def performTest(self, genes_of_interest, cutoff):
+    def performTest(self, ontology_type, genes_of_interest, cutoff):
+
         if cutoff is None:
             cutoff = p_val_threshold
 
-        total_num_genes = self._mapper.get_gene_count()
-        term2genes = self._mapper.get_term_mapping()
-        gene2terms = self._mapper.get_gene_mapping()
+        total_num_genes = self._mapper.get_gene_count(ontology_type)
+        term2genes = self._mapper.get_term_mapping(ontology_type)
+        gene2terms = self._mapper.get_gene_mapping(ontology_type)
 
         sample_map = self.__calculateTermFrequency(genes_of_interest, gene2terms)
 
@@ -178,6 +208,12 @@ class TermEnrichment(restful.Resource):
         # Gene names are case INSENSITIVE!
         genes = args[GENES]
         cutoff = args[ALPHA]
+        ontology_type = args[ONTOLOGY_TYPE]
+
+        if ontology_type is None:
+            ontology_type = 'NEXO'
+        elif ontology_type not in VALID_ONTOLOGY:
+            return {'results':'Ontology type not supported: ' + ontology_type}
 
         gene_list = genes.split()
         genes_upper = []
@@ -185,7 +221,7 @@ class TermEnrichment(restful.Resource):
             genes_upper.append(gene.upper())
 
         print(genes_upper)
-        return tester.performTest(genes_upper, cutoff)
+        return tester.performTest(ontology_type, genes_upper, cutoff)
 
 api.add_resource(TermEnrichment, '/enrich')
 
