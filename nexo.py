@@ -133,9 +133,6 @@ class HypergeometricTest:
         pvals = np.zeros(num_tests)
 
         idx = 0
-        
-        print(sample_map)
-
         for term in sample_map:
             # Calculate p-value
             sampled = sample_map[term]
@@ -164,11 +161,7 @@ class HypergeometricTest:
             elif p <= 0:
                 pvals[i] = 0.0000000000000000000001
             i += 1
-
-        print(pvals)
-
         qvals = qvalue.estimate(pvals)
-
         filtered_results = []
 
         idx = 0
@@ -233,7 +226,7 @@ class TermEnrichment(restful.Resource):
         for gene in gene_list:
             genes_upper.append(gene.upper())
 
-        print(genes_upper)
+        #print(genes_upper)
         return tester.performTest(ontology_type, genes_upper, cutoff)
 
 api.add_resource(TermEnrichment, '/enrich')
