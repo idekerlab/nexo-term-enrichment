@@ -2,6 +2,8 @@
 import numpy as np
 import scipy as sp
 
+import math
+
 import qvalue
 
 from scipy import stats
@@ -55,7 +57,7 @@ class TermMapping:
         self._term2genes['NEXO'] = self.createMap("data/term2genes.txt")
        
         # GO resources
-        self._gene2terms['GO'] = self.createMap("data/gene2terms.txt")
+        self._gene2terms['GO'] = self.createMap("data/gene2goterms.txt")
         self._term2genes['GO'] = self.createMap("data/goterm2genes.txt")
         
         # Count genes.  Root term has all genes.
@@ -88,10 +90,16 @@ class TermMapping:
 
 
     def get_gene_mapping(self, ontology_type):
-        return self._gene2terms[ontology_type]
+        if ontology_type == 'NEXO':
+            return self._gene2terms[ontology_type]
+        else:
+            return self._gene2terms['GO']
 
     def get_term_mapping(self, ontology_type):
-        return self._term2genes[ontology_type]
+        if ontology_type == 'NEXO':
+            return self._term2genes[ontology_type]
+        else:
+            return self._term2genes['GO']
 
     def get_gene_count(self, ontology_type):
         return self._num_genes[ontology_type]
@@ -125,6 +133,9 @@ class HypergeometricTest:
         pvals = np.zeros(num_tests)
 
         idx = 0
+        
+        print(sample_map)
+
         for term in sample_map:
             # Calculate p-value
             sampled = sample_map[term]
@@ -148,11 +159,13 @@ class HypergeometricTest:
         # Correct border values (library does not accept 0 & 1)
         i = 0
         for p in pvals:
-            if p >= 1.0:
+            if p >= 1.0 or math.isnan(p):
                 pvals[i] = 0.9999999999999999999999
             elif p <= 0:
                 pvals[i] = 0.0000000000000000000001
             i += 1
+
+        print(pvals)
 
         qvals = qvalue.estimate(pvals)
 
