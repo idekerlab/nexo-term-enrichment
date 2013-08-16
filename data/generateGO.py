@@ -27,8 +27,8 @@ def process_line(line):
 
 # Input data files
 sgdTable = open("sgd2symbols.txt", "r")
-out = open("goterm2genes.txt", "w")
-out2 = open("gene2goterms.txt", "w")
+out = open("goterm2genes_2.txt", "w")
+out2 = open("gene2goterms_2.txt", "w")
 
 sgd2symbol = {}
 sgd2orf = {}
@@ -66,7 +66,7 @@ for id in keys:
     terms = list(idmap[id])
     terms.sort()
     for term in terms:
-        line = line + term + ','
+        line = line + term + '|'
     
     out2.write(line[0:len(line)-1] + '\n')
     
@@ -81,7 +81,7 @@ for term in goterm2symbols:
     symbols.sort()
 
     for symbol in symbols:
-        line = line + symbol + ','
+        line = line + symbol + '|'
     out.write(line[0:len(line)-1] + '\n')
 
 out.close()

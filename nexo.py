@@ -53,22 +53,28 @@ class TermMapping:
         print "Loading resource files..."
         
         # NeXO resources
-        self._gene2terms['NEXO'] = self.createMap("data/gene2terms.txt")
-        self._term2genes['NEXO'] = self.createMap("data/term2genes.txt")
+        self._gene2terms['NEXO'] = self.createMap("data/gene2terms.txt", ",")
+        self._term2genes['NEXO'] = self.createMap("data/term2genes.txt", ",")
        
         # GO resources
-        self._gene2terms['GO'] = self.createMap("data/gene2goterms.txt")
-        self._term2genes['GO'] = self.createMap("data/goterm2genes.txt")
+        self._gene2terms['BP'] = self.createMap("data/biological_process.info_gain.gene_term.genes", "|")
+        self._term2genes['BP'] = self.createMap("data/biological_process.info_gain.gene_term.terms", "|")
+        
+        self._gene2terms['CC'] = self.createMap("data/cellular_component.info_gain.gene_term.genes", "|")
+        self._term2genes['CC'] = self.createMap("data/cellular_component.info_gain.gene_term.terms", "|")
+        
+        self._gene2terms['MF'] = self.createMap("data/molecular_function.info_gain.gene_term.genes", "|")
+        self._term2genes['MF'] = self.createMap("data/molecular_function.info_gain.gene_term.terms", "|")
         
         # Count genes.  Root term has all genes.
         all_genes = self._term2genes['NEXO'][ROOT_NEXO]
         self._num_genes['NEXO'] = len(all_genes)
         
-        all_genes = self._term2genes['GO'][ROOT_MF]
+        all_genes = self._term2genes['MF'][ROOT_MF]
         self._num_genes['MF'] = len(all_genes)
-        all_genes = self._term2genes['GO'][ROOT_CC]
+        all_genes = self._term2genes['CC'][ROOT_CC]
         self._num_genes['CC'] = len(all_genes)
-        all_genes = self._term2genes['GO'][ROOT_BP]
+        all_genes = self._term2genes['BP'][ROOT_BP]
         self._num_genes['BP'] = len(all_genes)
 
         print("Ready.  NeXO Genes = " + str(self._num_genes['NEXO']))
@@ -76,30 +82,24 @@ class TermMapping:
         print("BP Genes = " + str(self._num_genes['BP']))
         print("CC Genes = " + str(self._num_genes['CC']))
 
-    def createMap(self, file_name):
+    def createMap(self, file_name, delimiter):
         mapping = {}
         with open(file_name, "r") as f:
             for line in f:
                 line = line.rstrip()
                 parts = line.split("\t")
                 geneID = parts[0]
-                terms = parts[1].split(",")
+                terms = parts[1].split(delimiter)
                 mapping[geneID] = terms
         f.close()
         return mapping
 
 
     def get_gene_mapping(self, ontology_type):
-        if ontology_type == 'NEXO':
             return self._gene2terms[ontology_type]
-        else:
-            return self._gene2terms['GO']
 
     def get_term_mapping(self, ontology_type):
-        if ontology_type == 'NEXO':
             return self._term2genes[ontology_type]
-        else:
-            return self._term2genes['GO']
 
     def get_gene_count(self, ontology_type):
         return self._num_genes[ontology_type]
