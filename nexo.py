@@ -121,9 +121,14 @@ class HypergeometricTest:
         term2genes = self._mapper.get_term_mapping(ontology_type)
         gene2terms = self._mapper.get_gene_mapping(ontology_type)
 
-        sample_map = self.__calculateTermFrequency(genes_of_interest, gene2terms)
+        filtered = self.__filter_input(genes_of_interest, gene2terms)
+        
+        #print(filtered)
+        #print(len(filtered))
 
-        n = len(genes_of_interest)
+        sample_map = self.__calculateTermFrequency(filtered, gene2terms)
+
+        n = len(filtered)
 
         # Number of tests performed: will be used for correction.
         num_tests = len(sample_map)
@@ -151,7 +156,7 @@ class HypergeometricTest:
             result['genes'] = list(sampled)
             results[idx] = result
             idx = idx + 1
-
+            #print(term + " = " + str(p) + ", k = " + str(k) + ", m = " + str(m) + ", total = " + str(total_num_genes) + ", n= " + str(n))
         
         # Correct border values (library does not accept 0 & 1)
         i = 0
@@ -180,6 +185,18 @@ class HypergeometricTest:
 
         return {'results':filtered_results, 'total_genes':total_num_genes}
 
+
+
+    # remove junks & duplicates
+    def __filter_input(self, input_list, gene2terms):
+        filtered = set([])
+
+        for gene in input_list:
+            if gene in gene2terms:
+                filtered.add(gene)
+
+        return list(filtered)
+            
 
     def __calculateTermFrequency(self, genes_of_interest, gene2terms):
         sample_term_map = {}
